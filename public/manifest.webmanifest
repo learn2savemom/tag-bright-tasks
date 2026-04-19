@@ -1,0 +1,18 @@
+{
+  "name": "Tarefas — Gerenciador moderno",
+  "short_name": "Tarefas",
+  "description": "Gerenciador de tarefas com tags coloridas e destaque para itens importantes.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
