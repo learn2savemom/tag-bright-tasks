@@ -108,7 +108,13 @@ const Index = () => {
   const totalActive = tasks.filter((t) => !t.completed).length;
 
   const importantTag = tags.find((t) => t.id === IMPORTANT_TAG_ID);
-  const customTags = tags.filter((t) => t.id !== IMPORTANT_TAG_ID);
+  const customTags = useMemo(
+    () =>
+      tags
+        .filter((t) => t.id !== IMPORTANT_TAG_ID)
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+    [tags]
+  );
 
   return (
     <div className="min-h-screen bg-background">
