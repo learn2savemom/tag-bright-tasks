@@ -1,4 +1,5 @@
 import { Task, Tag, IMPORTANT_TAG_ID } from "@/lib/types";
+import { compareTagsImportantFirstThenName } from "@/lib/sort-tags";
 import { TagPill } from "./TagEditor";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,7 +25,7 @@ function formatDate(iso: string) {
 export function TaskCard({ task, tags, onToggle, onEdit, onDelete }: TaskCardProps) {
   const taskTags = tags
     .filter((t) => task.tagIds.includes(t.id))
-    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    .sort(compareTagsImportantFirstThenName);
   const isImportant = task.tagIds.includes(IMPORTANT_TAG_ID);
 
   // Important tasks get the colored backdrop / border treatment.

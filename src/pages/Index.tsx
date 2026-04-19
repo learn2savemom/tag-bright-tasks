@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useTheme } from "@/hooks/use-theme";
 import { Task, Tag, DEFAULT_TAGS, IMPORTANT_TAG_ID } from "@/lib/types";
+import { compareTagsImportantFirstThenName } from "@/lib/sort-tags";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskDialog } from "@/components/TaskDialog";
 import { TagsManager } from "@/components/TagsManager";
@@ -112,7 +113,7 @@ const Index = () => {
     () =>
       tags
         .filter((t) => t.id !== IMPORTANT_TAG_ID)
-        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+        .sort(compareTagsImportantFirstThenName),
     [tags]
   );
 

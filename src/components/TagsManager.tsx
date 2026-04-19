@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Tag, IMPORTANT_TAG_ID } from "@/lib/types";
+import { compareTagsImportantFirstThenName } from "@/lib/sort-tags";
 import {
   Sheet,
   SheetContent,
@@ -33,6 +34,8 @@ export function TagsManager({ tags, onCreate, onUpdate, onDelete }: TagsManagerP
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const sortedTags = useMemo(() => [...tags].sort(compareTagsImportantFirstThenName), [tags]);
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -47,7 +50,7 @@ export function TagsManager({ tags, onCreate, onUpdate, onDelete }: TagsManagerP
         </SheetHeader>
 
         <div className="mt-6 space-y-3">
-          {tags.map((tag) =>
+          {sortedTags.map((tag) =>
             editingId === tag.id ? (
               <div key={tag.id} className="rounded-xl border bg-card p-4 animate-scale-in">
                 <TagEditor
