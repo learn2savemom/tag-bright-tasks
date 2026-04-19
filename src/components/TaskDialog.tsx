@@ -39,10 +39,6 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
     }
   }, [open, initial]);
 
-  const toggleTag = (id: string) => {
-    setTagIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
