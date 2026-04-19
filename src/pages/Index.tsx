@@ -27,6 +27,12 @@ const Index = () => {
     setTags((prev) => [...prev, { ...data, id: `tag-${Date.now()}` }]);
     toast.success("Tag criada");
   };
+  /** Inline creation from the task dialog: returns the new Tag synchronously. */
+  const createTagInline = (name: string, color: string): Tag => {
+    const tag: Tag = { id: `tag-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, name, color };
+    setTags((prev) => [...prev, tag]);
+    return tag;
+  };
   const updateTag = (id: string, data: Omit<Tag, "id">) => {
     setTags((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t)));
   };
@@ -216,6 +222,7 @@ const Index = () => {
         tags={tags}
         initial={editing}
         onSave={saveTask}
+        onCreateTag={createTagInline}
       />
     </div>
   );

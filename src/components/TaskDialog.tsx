@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { TagPill } from "./TagEditor";
+import { TagInput } from "./TagInput";
 
 interface TaskDialogProps {
   open: boolean;
@@ -19,9 +19,11 @@ interface TaskDialogProps {
   tags: Tag[];
   initial?: Task;
   onSave: (data: Omit<Task, "id" | "createdAt" | "completed">) => void;
+  /** Create a tag inline from the task dialog. Returns the created tag (with id). */
+  onCreateTag: (name: string, color: string) => Tag;
 }
 
-export function TaskDialog({ open, onOpenChange, tags, initial, onSave }: TaskDialogProps) {
+export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreateTag }: TaskDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
@@ -36,10 +38,6 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave }: TaskDi
       setTagIds(initial?.tagIds ?? []);
     }
   }, [open, initial]);
-
-  const toggleTag = (id: string) => {
-    setTagIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,22 +95,16 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave }: TaskDi
           </div>
 
           <div className="space-y-2">
-            <Label>Tags</Label>
-            {tags.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma tag criada ainda.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <TagPill
-                    key={tag.id}
-                    tag={tag}
-                    selected={tagIds.includes(tag.id)}
-                    onClick={() => toggleTag(tag.id)}
-                    size="md"
-                  />
-                ))}
-              </div>
-            )}
+            <Label htmlFor="task-tags">Tags</Label>
+            <TagInput
+              allTags={tags}
+              selectedIds={tagIds}
+              onChange={setTagIds}
+              onCreateTag={onCreateTag}
+            />
+            <p className="text-xs text-muted-foreground">
+              Digite para buscar. Pressione Enter para adicionar — ou criar uma nova.
+            </p>
           </div>
 
           <DialogFooter>
