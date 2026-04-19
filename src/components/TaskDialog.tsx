@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
+import { Check } from "lucide-react";
 import { Task, Tag } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,14 +53,39 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="font-display text-2xl">
-            {initial ? "Editar tarefa" : "Nova tarefa"}
-          </DialogTitle>
-        </DialogHeader>
-
+      <DialogContent
+        className="sm:max-w-lg"
+        hideClose
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <form onSubmit={handleSubmit} className="space-y-4">
+          <DialogHeader className="flex flex-row items-center justify-between gap-3 space-y-0 text-left">
+            <DialogTitle className="font-display text-2xl flex-1 min-w-0 leading-tight">
+              {initial ? "Editar tarefa" : "Nova tarefa"}
+            </DialogTitle>
+            <div className="flex shrink-0 gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 shrink-0 text-xl"
+                onClick={() => onOpenChange(false)}
+                aria-label="Cancelar"
+              >
+                ❌
+              </Button>
+              <Button
+                type="submit"
+                size="icon"
+                className="h-11 w-11 shrink-0 border-0 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+                aria-label={initial ? "Salvar alterações" : "Confirmar e criar tarefa"}
+              >
+                <Check className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+              </Button>
+            </div>
+          </DialogHeader>
+
           <div className="space-y-2">
             <Label htmlFor="task-title">Título</Label>
             <Input
@@ -106,13 +131,6 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
               onChange={(e) => setDate(e.target.value)}
             />
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit">{initial ? "Salvar" : "Criar tarefa"}</Button>
-          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
