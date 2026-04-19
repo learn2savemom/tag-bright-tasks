@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { Task, Tag } from "@/lib/types";
 import {
   Dialog,
@@ -55,12 +56,23 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">
-            {initial ? "Editar tarefa" : "Nova tarefa"}
-          </DialogTitle>
+          <div className="flex items-center justify-between gap-3 pr-8">
+            <DialogTitle className="font-display text-2xl">
+              {initial ? "Editar tarefa" : "Nova tarefa"}
+            </DialogTitle>
+            <Button
+              type="submit"
+              form="task-form"
+              size="icon"
+              className="shrink-0 bg-gradient-primary hover:opacity-90 shadow-glow"
+              aria-label={initial ? "Salvar" : "Criar tarefa"}
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form id="task-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="task-title">Título</Label>
             <Input
