@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { Task, Tag } from "@/lib/types";
 import {
@@ -28,6 +28,37 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const [tagIds, setTagIds] = useState<string[]>([]);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  /** Margem acima = x, abaixo = 3x → topo = (vh − altura) / 4. Só `top` em inline — `transform` fica nas classes (evita conflito com animate-in). */
+  useLayoutEffect(() => {
+    if (!open) return;
+    const el = contentRef.current;
+    if (!el) return;
+
+    const apply = () => {
+      const h = el.offsetHeight;
+      if (h < 1) return;
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      const top = Math.max(16, (vh - h) / 4);
+      el.style.top = `${top}px`;
+    };
+
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    window.addEventListener("resize", apply);
+    window.visualViewport?.addEventListener("resize", apply);
+    const raf = requestAnimationFrame(apply);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener("resize", apply);
+      window.visualViewport?.removeEventListener("resize", apply);
+      el.style.removeProperty("top");
+    };
+  }, [open, title, description, date, tagIds]);
 
   // Reset form whenever the dialog opens (for create or edit)
   useEffect(() => {
@@ -54,7 +85,9 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-lg"
+        ref={contentRef}
+        staticMotion
+        className="sm:max-w-lg max-h-[min(90dvh,calc(100dvh-2rem))] overflow-y-auto"
         hideClose
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
