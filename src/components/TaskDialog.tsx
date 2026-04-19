@@ -74,6 +74,19 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="task-tags">Tags</Label>
+            <TagInput
+              allTags={tags}
+              selectedIds={tagIds}
+              onChange={setTagIds}
+              onCreateTag={onCreateTag}
+            />
+            <p className="text-xs text-muted-foreground">
+              Digite para buscar. Pressione Enter para adicionar — ou criar uma nova.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="task-desc">Descrição (opcional)</Label>
             <Textarea
               id="task-desc"
@@ -92,19 +105,6 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="task-tags">Tags</Label>
-            <TagInput
-              allTags={tags}
-              selectedIds={tagIds}
-              onChange={setTagIds}
-              onCreateTag={onCreateTag}
-            />
-            <p className="text-xs text-muted-foreground">
-              Digite para buscar. Pressione Enter para adicionar — ou criar uma nova.
-            </p>
           </div>
 
           <DialogFooter>
