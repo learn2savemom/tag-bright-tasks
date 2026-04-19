@@ -87,7 +87,7 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
       <DialogContent
         ref={contentRef}
         staticMotion
-        className="sm:max-w-lg max-h-[min(90dvh,calc(100dvh-2rem))] overflow-y-auto"
+        className="w-full max-w-[min(32rem,90%)] max-h-[min(90dvh,calc(100dvh-2rem))] overflow-y-auto"
         hideClose
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
