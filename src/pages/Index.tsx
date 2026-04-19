@@ -161,6 +161,18 @@ const Index = () => {
             <Plus className="h-5 w-5" />
             <span className="hidden sm:inline">Nova</span>
           </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="px-3"
+            aria-label="Nova tarefa"
+            onClick={() => {
+              setEditing(undefined);
+              setDialogOpen(true);
+            }}
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Filters */}
