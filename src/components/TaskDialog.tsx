@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { TagPill } from "./TagEditor";
+import { TagInput } from "./TagInput";
 
 interface TaskDialogProps {
   open: boolean;
@@ -19,9 +19,11 @@ interface TaskDialogProps {
   tags: Tag[];
   initial?: Task;
   onSave: (data: Omit<Task, "id" | "createdAt" | "completed">) => void;
+  /** Create a tag inline from the task dialog. Returns the created tag (with id). */
+  onCreateTag: (name: string, color: string) => Tag;
 }
 
-export function TaskDialog({ open, onOpenChange, tags, initial, onSave }: TaskDialogProps) {
+export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreateTag }: TaskDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
