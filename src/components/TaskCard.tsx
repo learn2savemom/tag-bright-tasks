@@ -22,7 +22,9 @@ function formatDate(iso: string) {
 }
 
 export function TaskCard({ task, tags, onToggle, onEdit, onDelete }: TaskCardProps) {
-  const taskTags = tags.filter((t) => task.tagIds.includes(t.id));
+  const taskTags = tags
+    .filter((t) => task.tagIds.includes(t.id))
+    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   const isImportant = task.tagIds.includes(IMPORTANT_TAG_ID);
 
   // Important tasks get the colored backdrop / border treatment.
