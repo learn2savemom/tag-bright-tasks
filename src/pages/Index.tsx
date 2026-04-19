@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Moon, Sun, Sparkles, Star, ListTodo } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,10 @@ const Index = () => {
   const { theme, toggle } = useTheme();
   const [tasks, setTasks] = useLocalStorage<Task[]>("tasks.v1", []);
   const [tags, setTags] = useLocalStorage<Tag[]>("tags.v1", DEFAULT_TAGS);
+  // IDs of tags created inline from the task dialog — these auto-delete when no
+  // task references them. Tags created via the Tags Manager are kept around even
+  // if unused, since the user explicitly created them.
+  const [inlineTagIds, setInlineTagIds] = useLocalStorage<string[]>("tags.inline.v1", []);
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -31,17 +35,35 @@ const Index = () => {
   const createTagInline = (name: string, color: string): Tag => {
     const tag: Tag = { id: `tag-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, name, color };
     setTags((prev) => [...prev, tag]);
+    setInlineTagIds((prev) => [...prev, tag.id]);
     return tag;
   };
   const updateTag = (id: string, data: Omit<Tag, "id">) => {
     setTags((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t)));
+    // If the user explicitly edited an inline tag, treat it as "owned" — stop auto-deleting it.
+    setInlineTagIds((prev) => prev.filter((x) => x !== id));
   };
   const deleteTag = (id: string) => {
     setTags((prev) => prev.filter((t) => t.id !== id));
     setTasks((prev) => prev.map((t) => ({ ...t, tagIds: t.tagIds.filter((x) => x !== id) })));
+    setInlineTagIds((prev) => prev.filter((x) => x !== id));
     if (filter === id) setFilter("all");
     toast.success("Tag excluída");
   };
+
+  // ---- Auto-prune orphan inline tags --------------------------------------
+  // Whenever tasks change, drop any inline-created tag that is no longer used
+  // by any task. Manually-created tags and the default "Importante" are kept.
+  useEffect(() => {
+    if (inlineTagIds.length === 0) return;
+    const usedIds = new Set(tasks.flatMap((t) => t.tagIds));
+    const orphans = inlineTagIds.filter((id) => !usedIds.has(id));
+    if (orphans.length === 0) return;
+    setTags((prev) => prev.filter((t) => !orphans.includes(t.id)));
+    setInlineTagIds((prev) => prev.filter((id) => !orphans.includes(id)));
+    if (orphans.includes(filter as string)) setFilter("all");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks]);
 
   // ---- Task CRUD -----------------------------------------------------------
   const saveTask = (data: Omit<Task, "id" | "createdAt" | "completed">) => {
