@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Moon, Sun, Sparkles, Star, ListTodo } from "lucide-react";
+import { Plus, Moon, Sun, Sparkles, Star, ListTodo, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useTheme } from "@/hooks/use-theme";
 import { Task, Tag, DEFAULT_TAGS, IMPORTANT_TAG_ID } from "@/lib/types";
@@ -86,6 +97,11 @@ const Index = () => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
     toast.success("Tarefa excluída");
   };
+  const deleteCompleted = () => {
+    const count = tasks.filter((t) => t.completed).length;
+    setTasks((prev) => prev.filter((t) => !t.completed));
+    toast.success(`${count} tarefa${count === 1 ? "" : "s"} concluída${count === 1 ? "" : "s"} excluída${count === 1 ? "" : "s"}`);
+  };
 
   // ---- Filtering -----------------------------------------------------------
   const filtered = useMemo(() => {
@@ -98,12 +114,20 @@ const Index = () => {
         (t) => t.title.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
       );
     }
-    // Sort: incomplete first, then by createdAt desc
+    // Sort: incomplete first; then tasks with date (newest first), then no-date by createdAt desc
     return [...list].sort((a, b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
+      if (a.date && b.date) {
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        return b.createdAt - a.createdAt;
+      }
+      if (a.date && !b.date) return -1;
+      if (!a.date && b.date) return 1;
       return b.createdAt - a.createdAt;
     });
   }, [tasks, filter, search]);
+
+  const completedCount = tasks.filter((t) => t.completed).length;
 
   const importantCount = tasks.filter((t) => t.tagIds.includes(IMPORTANT_TAG_ID) && !t.completed).length;
   const totalActive = tasks.filter((t) => !t.completed).length;
@@ -166,9 +190,39 @@ const Index = () => {
             }}
           >
             <Plus className="h-5 w-5" />
-            <span className="hidden sm:inline">Nova</span>
+            <span className="hidden sm:inline">Nova Tarefa</span>
           </Button>
         </div>
+
+        {completedCount > 0 && (
+          <div className="flex justify-end">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground hover:text-destructive">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Limpar concluídas ({completedCount})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir tarefas concluídas?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso vai apagar {completedCount} tarefa{completedCount === 1 ? "" : "s"} marcada{completedCount === 1 ? "" : "s"} como pronta. Essa ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={deleteCompleted}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
