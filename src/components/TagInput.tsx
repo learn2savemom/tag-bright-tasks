@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, KeyboardEvent } from "react";
 import { Tag, TAG_PALETTE } from "@/lib/types";
+import { compareTagsImportantFirstThenName } from "@/lib/sort-tags";
 import { TagPill } from "./TagEditor";
 import { Plus, X } from "lucide-react";
 
@@ -21,12 +22,20 @@ export function TagInput({ allTags, selectedIds, onChange, onCreateTag }: TagInp
   const [highlight, setHighlight] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selected = allTags.filter((t) => selectedIds.includes(t.id));
+  const selected = useMemo(
+    () =>
+      allTags
+        .filter((t) => selectedIds.includes(t.id))
+        .sort(compareTagsImportantFirstThenName),
+    [allTags, selectedIds]
+  );
 
   // Suggestions: tags matching the query that aren't already selected.
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const available = allTags.filter((t) => !selectedIds.includes(t.id));
+    const available = allTags
+      .filter((t) => !selectedIds.includes(t.id))
+      .sort(compareTagsImportantFirstThenName);
     if (!q) return available.slice(0, 8);
     return available.filter((t) => t.name.toLowerCase().includes(q)).slice(0, 8);
   }, [query, allTags, selectedIds]);
@@ -72,9 +81,9 @@ export function TagInput({ allTags, selectedIds, onChange, onCreateTag }: TagInp
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setHighlight((h) => Math.max(h - 1, 0));
-    } else if (e.key === "Backspace" && query === "" && selected.length > 0) {
-      // Remove the last selected tag when backspacing on an empty input.
-      detach(selected[selected.length - 1].id);
+    } else if (e.key === "Backspace" && query === "" && selectedIds.length > 0) {
+      // Remove the last attached tag (order in selectedIds), not alphabetical last in the UI.
+      detach(selectedIds[selectedIds.length - 1]);
     } else if (e.key === "Escape") {
       setQuery("");
       inputRef.current?.blur();
@@ -125,7 +134,7 @@ export function TagInput({ allTags, selectedIds, onChange, onCreateTag }: TagInp
           onFocus={() => setFocused(true)}
           // Delay so click on a suggestion registers before the dropdown closes.
           onBlur={() => setTimeout(() => setFocused(false), 150)}
-          placeholder={selected.length === 0 ? "Digite para buscar ou criar tags…" : ""}
+          placeholder={selectedIds.length === 0 ? "Digite para buscar ou criar tags…" : ""}
           className="flex-1 min-w-[140px] bg-transparent outline-none text-sm py-1"
         />
       </div>

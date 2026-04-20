@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useTheme } from "@/hooks/use-theme";
 import { Task, Tag, DEFAULT_TAGS, IMPORTANT_TAG_ID } from "@/lib/types";
+import { compareTagsImportantFirstThenName } from "@/lib/sort-tags";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskDialog } from "@/components/TaskDialog";
 import { TagsManager } from "@/components/TagsManager";
@@ -108,7 +109,13 @@ const Index = () => {
   const totalActive = tasks.filter((t) => !t.completed).length;
 
   const importantTag = tags.find((t) => t.id === IMPORTANT_TAG_ID);
-  const customTags = tags.filter((t) => t.id !== IMPORTANT_TAG_ID);
+  const customTags = useMemo(
+    () =>
+      tags
+        .filter((t) => t.id !== IMPORTANT_TAG_ID)
+        .sort(compareTagsImportantFirstThenName),
+    [tags]
+  );
 
   return (
     <div className="min-h-screen bg-background">
