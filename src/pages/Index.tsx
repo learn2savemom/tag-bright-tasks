@@ -94,13 +94,31 @@ const Index = () => {
   const toggleTask = (id: string) =>
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
   const deleteTask = (id: string) => {
+    const removed = tasks.find((t) => t.id === id);
+    if (!removed) return;
+    const prevTasks = tasks;
     setTasks((prev) => prev.filter((t) => t.id !== id));
-    toast.success("Tarefa excluída");
+    toast.success("Tarefa excluída", {
+      action: {
+        label: "Desfazer",
+        onClick: () => setTasks(prevTasks),
+      },
+    });
   };
   const deleteCompleted = () => {
     const count = tasks.filter((t) => t.completed).length;
+    if (count === 0) return;
+    const prevTasks = tasks;
     setTasks((prev) => prev.filter((t) => !t.completed));
-    toast.success(`${count} tarefa${count === 1 ? "" : "s"} concluída${count === 1 ? "" : "s"} excluída${count === 1 ? "" : "s"}`);
+    toast.success(
+      `${count} tarefa${count === 1 ? "" : "s"} concluída${count === 1 ? "" : "s"} excluída${count === 1 ? "" : "s"}`,
+      {
+        action: {
+          label: "Desfazer",
+          onClick: () => setTasks(prevTasks),
+        },
+      }
+    );
   };
 
   // ---- Filtering -----------------------------------------------------------
