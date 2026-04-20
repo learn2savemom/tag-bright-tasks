@@ -234,9 +234,14 @@ const Index = () => {
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/70 border-b border-border">
         <div className="container max-w-3xl flex items-center justify-between gap-3 py-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
+            <button
+              type="button"
+              onClick={() => setAboutOpen(true)}
+              aria-label={`Sobre o ${APP_NAME}`}
+              className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
               <Sparkles className="h-5 w-5 text-primary-foreground" />
-            </div>
+            </button>
             <div className="min-w-0">
               <h1 className="font-display font-bold text-xl sm:text-2xl leading-none">Tarefas</h1>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -246,6 +251,34 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) importData(file);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Importar tarefas"
+            >
+              <Upload className="h-5 w-5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={exportData}
+              aria-label="Exportar tarefas"
+              disabled={tasks.length === 0}
+            >
+              <Download className="h-5 w-5" />
+            </Button>
             <TagsManager tags={tags} onCreate={createTag} onUpdate={updateTag} onDelete={deleteTag} />
             <Button
               size="icon"
