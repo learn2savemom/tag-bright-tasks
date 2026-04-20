@@ -268,7 +268,7 @@ const Index = () => {
               onClick={() => fileInputRef.current?.click()}
               aria-label="Importar tarefas"
             >
-              <Upload className="h-5 w-5" />
+              <Download className="h-5 w-5" />
             </Button>
             <Button
               size="icon"
@@ -277,7 +277,7 @@ const Index = () => {
               aria-label="Exportar tarefas"
               disabled={tasks.length === 0}
             >
-              <Download className="h-5 w-5" />
+              <Upload className="h-5 w-5" />
             </Button>
             <TagsManager tags={tags} onCreate={createTag} onUpdate={updateTag} onDelete={deleteTag} />
             <Button
