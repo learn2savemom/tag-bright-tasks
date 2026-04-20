@@ -23,7 +23,7 @@ import {
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useTheme } from "@/hooks/use-theme";
 import { Task, Tag, DEFAULT_TAGS, IMPORTANT_TAG_ID } from "@/lib/types";
-import { APP_VERSION, APP_NAME } from "@/lib/version";
+import { APP_VERSION, APP_NAME, VERSION_CHANGES } from "@/lib/version";
 import { compareTagsImportantFirstThenName } from "@/lib/sort-tags";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskDialog } from "@/components/TaskDialog";
@@ -440,7 +440,7 @@ const Index = () => {
             </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground text-center">
-            Organize seu dia, marque o que importa e mantenha o foco no essencial.
+            {VERSION_CHANGES}
           </p>
         </DialogContent>
       </Dialog>
