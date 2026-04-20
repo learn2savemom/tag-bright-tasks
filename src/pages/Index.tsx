@@ -427,6 +427,23 @@ const Index = () => {
         onSave={saveTask}
         onCreateTag={createTagInline}
       />
+
+      <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow mb-2">
+              <Sparkles className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <DialogTitle className="text-center font-display">{APP_NAME}</DialogTitle>
+            <DialogDescription className="text-center">
+              Versão <span className="font-mono font-medium text-foreground">{APP_VERSION}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground text-center">
+            Organize seu dia, marque o que importa e mantenha o foco no essencial.
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
