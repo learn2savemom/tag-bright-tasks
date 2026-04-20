@@ -45,6 +45,67 @@ const Index = () => {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Task | undefined>();
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ---- Import / Export ----------------------------------------------------
+  const exportData = () => {
+    const payload = {
+      version: APP_VERSION,
+      exportedAt: new Date().toISOString(),
+      tasks,
+      tags,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `tarefas-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Tarefas exportadas");
+  };
+
+  const importData = async (file: File) => {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const importedTasks = Array.isArray(parsed?.tasks) ? (parsed.tasks as Task[]) : null;
+      const importedTags = Array.isArray(parsed?.tags) ? (parsed.tags as Tag[]) : null;
+      if (!importedTasks || !importedTags) {
+        toast.error("Arquivo inválido");
+        return;
+      }
+      const prevTasks = tasks;
+      const prevTags = tags;
+      const tagMap = new Map<string, Tag>();
+      [...prevTags, ...importedTags].forEach((t) => tagMap.set(t.id, t));
+      DEFAULT_TAGS.forEach((t) => {
+        if (!tagMap.has(t.id)) tagMap.set(t.id, t);
+      });
+      const taskMap = new Map<string, Task>();
+      [...prevTasks, ...importedTasks].forEach((t) => taskMap.set(t.id, t));
+      setTags(Array.from(tagMap.values()));
+      setTasks(Array.from(taskMap.values()));
+      toast.success(
+        `${importedTasks.length} tarefa${importedTasks.length === 1 ? "" : "s"} importada${importedTasks.length === 1 ? "" : "s"}`,
+        {
+          action: {
+            label: "Desfazer",
+            onClick: () => {
+              setTasks(prevTasks);
+              setTags(prevTags);
+            },
+          },
+        }
+      );
+    } catch {
+      toast.error("Não foi possível ler o arquivo");
+    }
+  };
 
   // ---- Tag CRUD ------------------------------------------------------------
   const createTag = (data: Omit<Tag, "id">) => {
