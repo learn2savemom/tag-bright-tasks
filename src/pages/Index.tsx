@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Moon, Sun, Sparkles, Star, ListTodo, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Moon, Sun, Sparkles, Star, ListTodo, Trash2, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,9 +13,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useTheme } from "@/hooks/use-theme";
 import { Task, Tag, DEFAULT_TAGS, IMPORTANT_TAG_ID } from "@/lib/types";
+import { APP_VERSION, APP_NAME } from "@/lib/version";
 import { compareTagsImportantFirstThenName } from "@/lib/sort-tags";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskDialog } from "@/components/TaskDialog";
@@ -37,6 +45,67 @@ const Index = () => {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Task | undefined>();
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ---- Import / Export ----------------------------------------------------
+  const exportData = () => {
+    const payload = {
+      version: APP_VERSION,
+      exportedAt: new Date().toISOString(),
+      tasks,
+      tags,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `tarefas-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Tarefas exportadas");
+  };
+
+  const importData = async (file: File) => {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const importedTasks = Array.isArray(parsed?.tasks) ? (parsed.tasks as Task[]) : null;
+      const importedTags = Array.isArray(parsed?.tags) ? (parsed.tags as Tag[]) : null;
+      if (!importedTasks || !importedTags) {
+        toast.error("Arquivo inválido");
+        return;
+      }
+      const prevTasks = tasks;
+      const prevTags = tags;
+      const tagMap = new Map<string, Tag>();
+      [...prevTags, ...importedTags].forEach((t) => tagMap.set(t.id, t));
+      DEFAULT_TAGS.forEach((t) => {
+        if (!tagMap.has(t.id)) tagMap.set(t.id, t);
+      });
+      const taskMap = new Map<string, Task>();
+      [...prevTasks, ...importedTasks].forEach((t) => taskMap.set(t.id, t));
+      setTags(Array.from(tagMap.values()));
+      setTasks(Array.from(taskMap.values()));
+      toast.success(
+        `${importedTasks.length} tarefa${importedTasks.length === 1 ? "" : "s"} importada${importedTasks.length === 1 ? "" : "s"}`,
+        {
+          action: {
+            label: "Desfazer",
+            onClick: () => {
+              setTasks(prevTasks);
+              setTags(prevTags);
+            },
+          },
+        }
+      );
+    } catch {
+      toast.error("Não foi possível ler o arquivo");
+    }
+  };
 
   // ---- Tag CRUD ------------------------------------------------------------
   const createTag = (data: Omit<Tag, "id">) => {
@@ -165,9 +234,14 @@ const Index = () => {
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/70 border-b border-border">
         <div className="container max-w-3xl flex items-center justify-between gap-3 py-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
+            <button
+              type="button"
+              onClick={() => setAboutOpen(true)}
+              aria-label={`Sobre o ${APP_NAME}`}
+              className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
               <Sparkles className="h-5 w-5 text-primary-foreground" />
-            </div>
+            </button>
             <div className="min-w-0">
               <h1 className="font-display font-bold text-xl sm:text-2xl leading-none">Tarefas</h1>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -177,6 +251,34 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) importData(file);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Importar tarefas"
+            >
+              <Upload className="h-5 w-5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={exportData}
+              aria-label="Exportar tarefas"
+              disabled={tasks.length === 0}
+            >
+              <Download className="h-5 w-5" />
+            </Button>
             <TagsManager tags={tags} onCreate={createTag} onUpdate={updateTag} onDelete={deleteTag} />
             <Button
               size="icon"
@@ -325,6 +427,23 @@ const Index = () => {
         onSave={saveTask}
         onCreateTag={createTagInline}
       />
+
+      <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow mb-2">
+              <Sparkles className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <DialogTitle className="text-center font-display">{APP_NAME}</DialogTitle>
+            <DialogDescription className="text-center">
+              Versão <span className="font-mono font-medium text-foreground">{APP_VERSION}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground text-center">
+            Organize seu dia, marque o que importa e mantenha o foco no essencial.
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
