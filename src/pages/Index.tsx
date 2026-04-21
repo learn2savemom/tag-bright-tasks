@@ -1,10 +1,29 @@
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Moon, Sun, Sparkles, Star, ListTodo } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Moon, Sun, Sparkles, Star, ListTodo, Trash2, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useTheme } from "@/hooks/use-theme";
 import { Task, Tag, DEFAULT_TAGS, IMPORTANT_TAG_ID } from "@/lib/types";
+import { APP_VERSION, APP_NAME, VERSION_CHANGES } from "@/lib/version";
 import { compareTagsImportantFirstThenName } from "@/lib/sort-tags";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskDialog } from "@/components/TaskDialog";
@@ -26,6 +45,67 @@ const Index = () => {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Task | undefined>();
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ---- Import / Export ----------------------------------------------------
+  const exportData = () => {
+    const payload = {
+      version: APP_VERSION,
+      exportedAt: new Date().toISOString(),
+      tasks,
+      tags,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `tarefas-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Tarefas exportadas");
+  };
+
+  const importData = async (file: File) => {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const importedTasks = Array.isArray(parsed?.tasks) ? (parsed.tasks as Task[]) : null;
+      const importedTags = Array.isArray(parsed?.tags) ? (parsed.tags as Tag[]) : null;
+      if (!importedTasks || !importedTags) {
+        toast.error("Arquivo inválido");
+        return;
+      }
+      const prevTasks = tasks;
+      const prevTags = tags;
+      const tagMap = new Map<string, Tag>();
+      [...prevTags, ...importedTags].forEach((t) => tagMap.set(t.id, t));
+      DEFAULT_TAGS.forEach((t) => {
+        if (!tagMap.has(t.id)) tagMap.set(t.id, t);
+      });
+      const taskMap = new Map<string, Task>();
+      [...prevTasks, ...importedTasks].forEach((t) => taskMap.set(t.id, t));
+      setTags(Array.from(tagMap.values()));
+      setTasks(Array.from(taskMap.values()));
+      toast.success(
+        `${importedTasks.length} tarefa${importedTasks.length === 1 ? "" : "s"} importada${importedTasks.length === 1 ? "" : "s"}`,
+        {
+          action: {
+            label: "Desfazer",
+            onClick: () => {
+              setTasks(prevTasks);
+              setTags(prevTags);
+            },
+          },
+        }
+      );
+    } catch {
+      toast.error("Não foi possível ler o arquivo");
+    }
+  };
 
   // ---- Tag CRUD ------------------------------------------------------------
   const createTag = (data: Omit<Tag, "id">) => {
@@ -83,8 +163,31 @@ const Index = () => {
   const toggleTask = (id: string) =>
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
   const deleteTask = (id: string) => {
+    const removed = tasks.find((t) => t.id === id);
+    if (!removed) return;
+    const prevTasks = tasks;
     setTasks((prev) => prev.filter((t) => t.id !== id));
-    toast.success("Tarefa excluída");
+    toast.success("Tarefa excluída", {
+      action: {
+        label: "Desfazer",
+        onClick: () => setTasks(prevTasks),
+      },
+    });
+  };
+  const deleteCompleted = () => {
+    const count = tasks.filter((t) => t.completed).length;
+    if (count === 0) return;
+    const prevTasks = tasks;
+    setTasks((prev) => prev.filter((t) => !t.completed));
+    toast.success(
+      `${count} tarefa${count === 1 ? "" : "s"} concluída${count === 1 ? "" : "s"} excluída${count === 1 ? "" : "s"}`,
+      {
+        action: {
+          label: "Desfazer",
+          onClick: () => setTasks(prevTasks),
+        },
+      }
+    );
   };
 
   // ---- Filtering -----------------------------------------------------------
@@ -98,12 +201,20 @@ const Index = () => {
         (t) => t.title.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
       );
     }
-    // Sort: incomplete first, then by createdAt desc
+    // Sort: incomplete first; then tasks with date (newest first), then no-date by createdAt desc
     return [...list].sort((a, b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
+      if (a.date && b.date) {
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        return b.createdAt - a.createdAt;
+      }
+      if (a.date && !b.date) return -1;
+      if (!a.date && b.date) return 1;
       return b.createdAt - a.createdAt;
     });
   }, [tasks, filter, search]);
+
+  const completedCount = tasks.filter((t) => t.completed).length;
 
   const importantCount = tasks.filter((t) => t.tagIds.includes(IMPORTANT_TAG_ID) && !t.completed).length;
   const totalActive = tasks.filter((t) => !t.completed).length;
@@ -123,9 +234,14 @@ const Index = () => {
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/70 border-b border-border">
         <div className="container max-w-3xl flex items-center justify-between gap-3 py-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
+            <button
+              type="button"
+              onClick={() => setAboutOpen(true)}
+              aria-label={`Sobre o ${APP_NAME}`}
+              className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
               <Sparkles className="h-5 w-5 text-primary-foreground" />
-            </div>
+            </button>
             <div className="min-w-0">
               <h1 className="font-display font-bold text-xl sm:text-2xl leading-none">Tarefas</h1>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -135,6 +251,34 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) importData(file);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Importar tarefas"
+            >
+              <Download className="h-5 w-5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={exportData}
+              aria-label="Exportar tarefas"
+              disabled={tasks.length === 0}
+            >
+              <Upload className="h-5 w-5" />
+            </Button>
             <TagsManager tags={tags} onCreate={createTag} onUpdate={updateTag} onDelete={deleteTag} />
             <Button
               size="icon"
@@ -166,9 +310,39 @@ const Index = () => {
             }}
           >
             <Plus className="h-5 w-5" />
-            <span className="hidden sm:inline">Nova</span>
+            <span className="hidden sm:inline">Nova Tarefa</span>
           </Button>
         </div>
+
+        {completedCount > 0 && (
+          <div className="flex justify-end">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground hover:text-destructive">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Limpar concluídas ({completedCount})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir tarefas concluídas?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso vai apagar {completedCount} tarefa{completedCount === 1 ? "" : "s"} marcada{completedCount === 1 ? "" : "s"} como pronta. Essa ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={deleteCompleted}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
@@ -253,6 +427,23 @@ const Index = () => {
         onSave={saveTask}
         onCreateTag={createTagInline}
       />
+
+      <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow mb-2">
+              <Sparkles className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <DialogTitle className="text-center font-display">{APP_NAME}</DialogTitle>
+            <DialogDescription className="text-center">
+              Versão <span className="font-mono font-medium text-foreground">{APP_VERSION}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground text-center">
+            {VERSION_CHANGES}
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
