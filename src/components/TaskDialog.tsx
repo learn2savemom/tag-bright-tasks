@@ -1,3 +1,5 @@
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { Task, Tag } from "@/lib/types";
@@ -6,7 +8,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +30,37 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const [tagIds, setTagIds] = useState<string[]>([]);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  /** Margem acima = x, abaixo = 3x → topo = (vh − altura) / 4. Só `top` em inline — `transform` fica nas classes (evita conflito com animate-in). */
+  useLayoutEffect(() => {
+    if (!open) return;
+    const el = contentRef.current;
+    if (!el) return;
+
+    const apply = () => {
+      const h = el.offsetHeight;
+      if (h < 1) return;
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      const top = Math.max(16, (vh - h) / 4);
+      el.style.top = `${top}px`;
+    };
+
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    window.addEventListener("resize", apply);
+    window.visualViewport?.addEventListener("resize", apply);
+    const raf = requestAnimationFrame(apply);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener("resize", apply);
+      window.visualViewport?.removeEventListener("resize", apply);
+      el.style.removeProperty("top");
+    };
+  }, [open, title, description, date, tagIds]);
 
   // Reset form whenever the dialog opens (for create or edit)
   useEffect(() => {
@@ -54,25 +86,41 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-3 pr-8">
-            <DialogTitle className="font-display text-2xl">
+      <DialogContent
+        ref={contentRef}
+        staticMotion
+        className="w-full max-w-[min(32rem,90%)] max-h-[min(90dvh,calc(100dvh-2rem))] overflow-y-auto"
+        hideClose
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <DialogHeader className="flex flex-row items-center justify-between gap-3 space-y-0 text-left">
+            <DialogTitle className="font-display text-2xl flex-1 min-w-0 leading-tight">
               {initial ? "Editar tarefa" : "Nova tarefa"}
             </DialogTitle>
-            <Button
-              type="submit"
-              form="task-form"
-              size="icon"
-              className="shrink-0 bg-gradient-primary hover:opacity-90 shadow-glow"
-              aria-label={initial ? "Salvar" : "Criar tarefa"}
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
-          </div>
-        </DialogHeader>
+            <div className="flex shrink-0 gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 shrink-0 text-xl"
+                onClick={() => onOpenChange(false)}
+                aria-label="Cancelar"
+              >
+                ❌
+              </Button>
+              <Button
+                type="submit"
+                size="icon"
+                className="h-11 w-11 shrink-0 border-0 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+                aria-label={initial ? "Salvar alterações" : "Confirmar e criar tarefa"}
+              >
+                <Check className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+              </Button>
+            </div>
+          </DialogHeader>
 
-        <form id="task-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="task-title">Título</Label>
             <Input
@@ -118,13 +166,6 @@ export function TaskDialog({ open, onOpenChange, tags, initial, onSave, onCreate
               onChange={(e) => setDate(e.target.value)}
             />
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit">{initial ? "Salvar" : "Criar tarefa"}</Button>
-          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
